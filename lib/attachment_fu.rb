@@ -5,8 +5,8 @@ require 'active_support/dependencies'
 Tempfile.class_eval do
   # overwrite so tempfiles use the extension of the basename.  important for rmagick and image science
   def make_tmpname(basename, n)
-    ext = nil
-    sprintf('%s%d-%d%s', File::basename(basename, ext), ($$||0).to_i, (n||0).to_i, ext)
+    ext = nil || ''
+    sprintf('%s%d-%d%s', File::basename(basename, ext), $$, n.to_i, ext)
   end
 end
 
