@@ -12,10 +12,10 @@ module Technoweenie # :nodoc:
           # Yields a block containing an MiniMagick Image for the given binary data.
           def with_image(file, &block)
             begin
-              binary_data = file.is_a?(MiniMagick::Image) ? file : MiniMagick::Image.from_file(file) unless !Object.const_defined?(:MiniMagick)
+              binary_data = file.is_a?(MiniMagick::Image) ? file : MiniMagick::Image.open(file) unless !Object.const_defined?(:MiniMagick)
             rescue
               # Log the failure to load the image.
-              logger.debug("Exception working with image: #{$!}")
+              Rails.logger.debug("Exception working with image: #{$!}")
               binary_data = nil
             end
             block.call binary_data if block && binary_data
@@ -42,14 +42,15 @@ module Technoweenie # :nodoc:
             commands.strip unless attachment_options[:keep_profile]
 
             # gif are not handled correct, this is a hack, but it seems to work.
-            if img.output =~ / GIF /
-              img.format("png")
-            end           
-            
+            #if img.output =~ / GIF /
+            #  img.format("png")
+            #end           
             if size.is_a?(Fixnum) || (size.is_a?(Array) && size.first.is_a?(Fixnum))
               if size.is_a?(Fixnum)
-                size = [size, size]
+                size = [size, size]                
                 commands.resize(size.join('x'))
+              elsif size.is_a?(Array) && size[0] == size[1]
+                resize_and_crop(img, size[0], commands)                                                                         
               else
                 commands.resize(size.join('x') + '!')
               end
@@ -124,9 +125,31 @@ module Technoweenie # :nodoc:
           # crop image
           command
         end
-
-
-      end
-    end
+        
+        def resize_and_crop(image, square_size, commands)
+          if image[:width] < image[:height]
+            shave_off = ((image[:height] - image[:width])/2).round
+            if(parent.x1 && parent.y1)
+              crop_width = parent.x2 - parent.x1
+              crop_height = parent.y2 - parent.y1
+              commands.crop("#{crop_width}x#{crop_height}+#{parent.x1}+#{parent.y1}")
+            else
+              commands.shave("0x#{shave_off}")
+            end
+          elsif image[:width] > image[:height]
+            shave_off = ((image[:width] - image[:height])/2).round
+            if(parent.x1 && parent.y1)
+              crop_width = parent.x2 - parent.x1
+              crop_height = parent.y2 - parent.y1
+              commands.crop("#{crop_width}x#{crop_height}+#{parent.x1}+#{parent.y1}")
+            else
+              commands.shave("#{shave_off}x0")
+            end
+          end
+          commands.resize("#{square_size}x#{square_size}")
+          return image
+        end
+      end        
+    end      
   end
 end
