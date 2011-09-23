@@ -1,7 +1,22 @@
 require 'tempfile'
 require 'active_record'
 require 'active_support/dependencies'
+
+Tempfile.class_eval do
+  # overwrite so tempfiles use the extension of the basename.  important for rmagick and image science
+  def make_tmpname(basename, n)
+    if(basename.is_a?(Array))    #for image_magick, it passes an array ex: ["mini_magick", ".jpeg"] 
+      ext = basename[1]
+      basename = basename[0]
+    else
+      ext = nil || ''          
+    end
+    sprintf('%s%d-%d%s', File::basename(basename, ext), $$, n.to_i, ext)
+  end
+end
+
 require 'geometry'
+
 require 'technoweenie/attachment_fu'
 
 if RUBY_VERSION < '1.9'
