@@ -177,7 +177,7 @@ module Technoweenie # :nodoc:
       end
 
       def self.extended(base)
-        base.class_inheritable_accessor :attachment_options
+        base.class_attribute :attachment_options
         base.before_destroy :destroy_thumbnails
         base.before_validation :set_size_from_temp_path
         base.after_save :after_process_attachment
@@ -290,11 +290,11 @@ module Technoweenie # :nodoc:
         thumbnailable? || raise(ThumbnailError.new("Can't create a thumbnail if the content type is not an image or there is no parent_id column"))
         find_or_initialize_thumbnail(file_name_suffix).tap do |thumb|
           thumb.temp_paths.unshift temp_file
-          thumb.send(:'attributes=', {
+          thumb.assign_attributes({
             :content_type             => content_type,
             :filename                 => thumbnail_name_for(file_name_suffix),
             :thumbnail_resize_options => size
-          }, false)
+          }, :without_protection => true)
           callback_with_args :before_thumbnail_saved, thumb
           thumb.save!
         end
@@ -482,7 +482,7 @@ module Technoweenie # :nodoc:
         if defined?(Rails) && Rails::VERSION::MAJOR >= 3
           def callback_with_args(method, arg = self)
             if respond_to?(method)
-              send(method, arg) 
+              send(method, arg)
             end
           end
         # Yanked from ActiveRecord::Callbacks, modified so I can pass args to the callbacks besides self.
